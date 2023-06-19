@@ -3,9 +3,6 @@ const logger = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
-
-const contactsRouter = require("./routes/api/contacts.js");
-
 const app = express();
 
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
@@ -22,7 +19,11 @@ app.get("/", (req, res) => {
 
 // Router
 
+const contactsRouter = require("./routes/api/contacts.js");
+const userRouter = require("./routes/api/users.js");
+
 app.use("/api/contacts", contactsRouter);
+app.use("/api/users", userRouter);
 
 // Conection to data base
 
@@ -43,13 +44,6 @@ connection
 		console.log(`Server not running. Error message: ${err.message}`);
 		process.exit(1);
 	});
-
-// Middleware
-
-// app.use((req, res, next) => {
-// 	console.log("Nasze oprogramowanie pośredniczące");
-// 	next();
-// });
 
 // Error response
 
