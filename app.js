@@ -25,6 +25,11 @@ const userRouter = require("./routes/api/users.js");
 app.use("/api/contacts", contactsRouter);
 app.use("/api/users", userRouter);
 
+app.use((req, res, next) => {
+	console.log("middleweat");
+	next();
+});
+
 // Conection to data base
 
 const BASE_URI = process.env.BASE_URI;
