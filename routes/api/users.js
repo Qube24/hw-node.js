@@ -80,7 +80,8 @@ router.post("/login", async (req, res) => {
 
 	// Login logic
 	const token = jwt.sign({ _id: userExist._id }, secret, { expiresIn: "1h" });
-	res.header("Bearer", token);
+	res.header("Authorization", token);
+	await User.findOneAndUpdate({ _id: userExist._id }, { token: token });
 
 	try {
 		res.status(200).json({
@@ -88,6 +89,7 @@ router.post("/login", async (req, res) => {
 			code: 200,
 			user: {
 				email: email,
+				token: token,
 			},
 			message: "Login successful",
 		});
@@ -111,7 +113,7 @@ router.get("/logout", auth, async (req, res) => {
 
 	// Logout logic
 	try {
-		res.header("Bearer", "").status(204).json({
+		res.header("Authorization", "").status(204).json({
 			status: "success",
 			code: 204,
 		});
@@ -124,6 +126,7 @@ router.get("/logout", auth, async (req, res) => {
 router.get("/current", auth, async (req, res, next) => {
 	const { _id } = req.user;
 	const currentUser = await User.findById({ _id });
+	const token = req.header("Authorization");
 
 	// Current logic
 	try {
@@ -132,6 +135,7 @@ router.get("/current", auth, async (req, res, next) => {
 			code: 200,
 			data: {
 				email: currentUser.email,
+				token: token,
 			},
 		});
 	} catch (err) {
