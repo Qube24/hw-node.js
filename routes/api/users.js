@@ -157,14 +157,15 @@ router.get("/current", auth, async (req, res) => {
 // Multer middleware
 
 const uploadDir = path.join(process.cwd(), "tmp");
-const storeImage = path.join(process.cwd(), "public/avatars");
+const storeImage = path.join(process.cwd(), "public", "avatars");
 
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		cb(null, uploadDir);
 	},
 	filename: (req, file, cb) => {
-		cb(null, file.originalname);
+		const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 100);
+		cb(null, uniqueSuffix + "-" + file.originalname);
 	},
 	limits: {
 		fileSize: 1048576,
@@ -179,26 +180,24 @@ const upload = multer({
 router.patch("/avatars", auth, upload.single("avatar"), async (req, res) => {
 	const { description } = req.body;
 	const { _id } = req.user;
-	const { path: temporaryName, originalname } = req.file;
-	const token = req.header("Authorization");
+	const { path: temporaryDir, filename } = req.file;
+	const name = req.file.filename;
+	const oldDir = path.join(uploadDir, filename);
+	const newDir = path.join(storeImage, name);
 
-	const scaledImage = async (temporaryName) => {
-		const image = await jimp.read(temporaryName);
+	const scaledImage = async (temporaryDir) => {
+		const image = await jimp.read(temporaryDir);
 		await image.resize(250, 250);
-		await image.write(temporaryName);
+		await image.write(temporaryDir);
 	};
 
-	const addition = Date.now();
-
-	const filename = path.join(uploadDir, originalname);
-	const newDir = path.join(storeImage, addition + "-" + originalname);
-	await scaledImage(temporaryName);
+	await scaledImage(temporaryDir);
 
 	// Change avatar message
 	try {
-		fs.readFile(filename, (err, data) => {
+		fs.readFile(oldDir, "utf8", (err, data) => {
 			fs.writeFile(newDir, data, (err) => {
-				fs.unlink(filename, () => {
+				fs.unlink(oldDir, () => {
 					if (err) throw err;
 					console.log("File moved to another directory");
 				});
@@ -216,7 +215,6 @@ router.patch("/avatars", auth, upload.single("avatar"), async (req, res) => {
 			},
 		});
 	} catch (err) {
-		// await fs.unlink(temporaryName);
 		res.status(401).json({
 			status: "error",
 			code: 401,
