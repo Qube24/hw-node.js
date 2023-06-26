@@ -37,8 +37,8 @@ router.post("/signup", async (req, res) => {
 
 	// Register message
 	try {
-		const secureUrl = gravatar.url(email, { s: "100", r: "x", d: "retro" }, true);
-		const newUser = new User({ email, password: hashedPassword, avatarURL: secureUrl });
+		const secureURl = gravatar.url(email, { s: "100", r: "x", d: "retro" }, true);
+		const newUser = new User({ email, password: hashedPassword, avatarURL: secureURl });
 		await newUser.save();
 		res.status(201).json({
 			status: "success",
@@ -87,8 +87,7 @@ router.post("/login", async (req, res) => {
 	// Login logic
 	const token = jwt.sign({ _id: userExist._id }, secret, { expiresIn: "1h" });
 	res.header("Authorization", token);
-	await User.findOneAndUpdate({ _id: userExist._id }, { token: token });
-
+	const user = await User.findOneAndUpdate({ _id: userExist._id }, { token: token });
 	// Login message
 	try {
 		res.status(200).json({
@@ -97,6 +96,7 @@ router.post("/login", async (req, res) => {
 			user: {
 				email: email,
 				token: token,
+				avatarURL: user.avatarURL,
 			},
 			message: "Login successful",
 		});
@@ -157,13 +157,15 @@ router.get("/current", auth, async (req, res) => {
 // Multer middleware
 
 const uploadDir = path.join(process.cwd(), "tmp");
+const storeImage = path.join(process.cwd(), "public", "avatars");
 
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		cb(null, uploadDir);
 	},
 	filename: (req, file, cb) => {
-		cb(null, file.originalname);
+		const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 100);
+		cb(null, uniqueSuffix + "-" + file.originalname);
 	},
 	limits: {
 		fileSize: 1048576,
@@ -175,34 +177,48 @@ const upload = multer({
 });
 
 // Change avatar
-router.patch("/avatars", upload.single("avatar"), auth, async (req, res) => {
+router.patch("/avatars", auth, upload.single("avatar"), async (req, res) => {
+	const { description } = req.body;
 	const { _id } = req.user;
-	const { path, originalname } = req.file;
+	const { path: temporaryDir, filename } = req.file;
+	const name = req.file.filename;
+	const oldDir = path.join(uploadDir, filename);
+	const newDir = path.join(storeImage, name);
 
-	const scaledImage = async () => {
-		const image = await jimp.read(path);
+	const scaledImage = async (temporaryDir) => {
+		const image = await jimp.read(temporaryDir);
 		await image.resize(250, 250);
-		await image.write(path);
+		await image.write(temporaryDir);
 	};
-	scaledImage();
-	// const filename = .join(uploadDir, originalname);
-	const newAvatar = await User.findOneAndUpdate({ _id: _id }, { avatarURL: uploadDir });
-	console.log(req.user);
+
+	await scaledImage(temporaryDir);
+
 	// Change avatar message
 	try {
-		// fs.rename(path, filename);
+		fs.readFile(oldDir, "utf8", (err, data) => {
+			fs.writeFile(newDir, data, (err) => {
+				fs.unlink(oldDir, () => {
+					if (err) throw err;
+					console.log("File moved to another directory");
+				});
+			});
+		});
+
+		await User.findOneAndUpdate({ _id: _id }, { avatarURL: newDir });
+
 		res.status(200).json({
+			description,
 			status: "success",
 			code: 200,
 			data: {
-				avatarURL: newAvatar.avatarURL,
+				avatarURL: newDir,
 			},
 		});
 	} catch (err) {
 		res.status(401).json({
 			status: "error",
 			code: 401,
-			message: "Not authorized",
+			message: "Unauthorized access",
 		});
 	}
 });
