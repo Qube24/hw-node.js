@@ -4,7 +4,6 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const app = express();
-const path = require("path");
 
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
