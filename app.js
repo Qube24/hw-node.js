@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// Welcome page
+// Welcome page walić sendgrid
 
 app.get("/", (req, res) => {
 	res.send('WELCOME TO THE MAIN PAGE. Path to contact is "/api/contacts"');
