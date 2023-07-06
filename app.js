@@ -22,9 +22,11 @@ app.get("/", (req, res) => {
 
 const contactsRouter = require("./routes/api/contacts.js");
 const userRouter = require("./routes/api/users.js");
+const mail = require("./utils/mailing.js");
 
 app.use("/api/contacts", contactsRouter);
 app.use("/api/users", userRouter);
+app.use("/mail", mail);
 
 // Conection to data base
 
