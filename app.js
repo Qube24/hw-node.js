@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// Welcome page walić sendgrid
+// Welcome page
 
 app.get("/", (req, res) => {
 	res.send('WELCOME TO THE MAIN PAGE. Path to contact is "/api/contacts"');
@@ -22,9 +22,11 @@ app.get("/", (req, res) => {
 
 const contactsRouter = require("./routes/api/contacts.js");
 const userRouter = require("./routes/api/users.js");
+const mail = require("./utils/mailing.js");
 
 app.use("/api/contacts", contactsRouter);
 app.use("/api/users", userRouter);
+app.use("/mail", mail);
 
 // Conection to data base
 
